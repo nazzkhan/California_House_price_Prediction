@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>California House Value Predictor</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="icon">🏡</div>
+        <h1>California House Value Predictor</h1>
+        <p class="subtitle">Enter household & area details to estimate the median house value</p>
+    </div>
+
+    <form id="predictForm">
+        {% for col in columns %}
+        <div class="input-group">
+            <label for="{{ col }}">
+                <span class="emoji">{{ icons.get(col, "📊") }}</span> {{ col }}
+            </label>
+            <input type="number" step="any" id="{{ col }}" name="{{ col }}" placeholder="Enter {{ col }}" required>
+        </div>
+        {% endfor %}
+
+        <button type="submit" id="submitBtn">
+            <span>🔮</span> Predict House Value
+        </button>
+    </form>
+
+    <div id="result" class="result"></div>
+</div>
+
+<script>
+    const form = document.getElementById("predictForm");
+    const resultDiv = document.getElementById("result");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        for (const pair of formData.entries()) {
+            params.append(pair[0], pair[1]);
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<span>⏳</span> Predicting...";
+        resultDiv.className = "result show loading";
+        resultDiv.textContent = "Crunching the numbers...";
+
+        try {
+            const response = await fetch(`/predict?${params.toString()}`);
+            const data = await response.json();
+
+            if (data.error) {
+                resultDiv.className = "result show error";
+                resultDiv.textContent = "⚠️ " + data.error;
+            } else {
+                resultDiv.className = "result show success";
+                resultDiv.innerHTML = `Predicted Median House Value
+                    <span class="big-value">$${(data.MedHouseVal * 100000).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>`;
+            }
+        } catch (err) {
+            resultDiv.className = "result show error";
+            resultDiv.textContent = "⚠️ Something went wrong. Check the server.";
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = "<span>🔮</span> Predict House Value";
+        }
+    });
+</script>
+
+</body>
+</html>
